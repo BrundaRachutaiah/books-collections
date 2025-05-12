@@ -163,6 +163,74 @@ app.post("/addBook", async (req,res) => {
     }
 })
 
+async function getAllAuthors() {
+    let result = await author.findAll()
+    return {authors: result}
+}
+
+app.get("/authors", async (req,res) => {
+    try {
+        let result = await getAllAuthors()
+        if(result.authors.length === 0){
+            res.status(400).json({message: "No authors found."})
+        }
+        res.status(200).json(result)
+    } catch (error) {
+        res.status(500).json({message: "Error while fetching all authors.", error: error.message})
+    }
+})
+
+async function addNewAuthor(newAuthor) {
+    let result = await author.create(newAuthor)
+    return {Author: result}
+}
+
+app.post("/author/new", async (req,res) => {
+    try {
+        let newAuthor = req.body.newAuthor
+        let result = await addNewAuthor(newAuthor)
+        res.status(200).json(result)
+    } catch (error) {
+        res.status(500).json({message: "error while adding a new author.", error: error.message})
+    }
+})
+
+async function getAuthorsByGenreId(genresId) {
+    let genresDetails = await bookGenre.findAll({
+        where: {genreId: genresId}
+    })
+    let authorsDetails = []
+    let bookIds = []
+    for (let i=0; i<genresDetails.length; i++){
+        let bookDetails = await book.findAll({
+            where: {id: genresDetails[i].bookId}
+        })
+        bookIds.push(bookDetails.book)
+    }
+    console.log(bookIds)
+    for(let i=0; i<bookIds.length; i++){
+        let authors = await author.findOne({where: {id: bookIds[i]}})
+        authorsDetails.push(authors)
+    }
+    return {Authors: authorsDetails}
+}
+
+app.get("/genres/:genresId/authors", async (req,res) => {
+    try {
+        let genresId = parseInt(req.params.genresId)
+        if(!genresId || typeof genresId !== "number"){
+            res.status(400).json({message: "GenreId is require and should be number."})
+        }
+        let result = await getAuthorsByGenreId(genresId)
+        if(result.Authors.length === 0){
+            res.status(404).json({message: "No authors of this genresId found."})
+        }
+        res.status(200).json(result)
+    } catch (error) {
+        res.status(500).json({message: "error while fetching the authors by genresId", error: error.message})
+    }
+})
+
 app.listen(PORT, () => {
     console.log(`server running on port ${PORT}`)
 })
