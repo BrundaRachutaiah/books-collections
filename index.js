@@ -65,12 +65,6 @@ app.get("/genre-assign-set/:bookId/:genreId", async (req,res) => {
 app.post("/assign-genres", async (req, res) => {
     try {
         const { bookId, genreIds } = req.body;
-        if(!bookId || typeof bookId !== "number"){
-            return res.status(400).json({message: "BookId is require and should be number."})
-        }
-        if(!genreIds || typeof genreIds !== "number"){
-            return res.status(400).json({message: "genreid is require and should be number."})
-        }
         const foundBook = await book.findByPk(bookId);
         const foundGenres = await genre.findAll({
             where: {
@@ -81,7 +75,7 @@ app.post("/assign-genres", async (req, res) => {
             return res.status(404).json({ message: "Book or genres not found." });
         }
         await foundBook.setGenres(foundGenres); 
-        res.status(200).json({ message: "Genres assigned to book successfully." });
+        res.status(200).json({ message: "Genres assigned to book successfully."});
     } catch (error) {
         res.status(500).json({ message: "Error assigning genres", error: error.message });
     }
@@ -135,7 +129,7 @@ async function getBooksByGenre(genreId){
 app.get("/genres/:genreId/books", async (req,res) => {
     try {
         let genreId = parseInt(req.params.genreId)
-        if(!genreIds || typeof genreIds !== "number"){
+        if(!genreId || typeof genreId !== "number"){
             return res.status(400).json({message: "genreid is require and should be number."})
         }
         let result = await getBooksByGenre(genreId)
@@ -150,7 +144,13 @@ app.get("/genres/:genreId/books", async (req,res) => {
 
 async function addNewBook(newBook) {
     let result = await book.create(newBook)
-    return {books: result}
+    let authorDetails = await author.findOne({where: {id: result.authorId}})
+    return {books: {
+        ...result.dataValues,
+        author: {
+            ...authorDetails.dataValues
+        }
+    }}
 }
 
 app.post("/addBook", async (req,res) => {
